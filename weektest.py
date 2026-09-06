@@ -1,22 +1,5 @@
-"""
-Quiz Game - A command-line quiz application.
-
-This script presents a randomized quiz to the user, tracks their score,
-and provides feedback based on performance.
-"""
-
-# Import Python's built-in random module for shuffling questions and options.
 import random
 
-# ---------------------------------------------------------------------------
-# Quiz Data
-# ---------------------------------------------------------------------------
-# A nested dictionary holding all questions. Each top-level key is a category
-# name mapping to a list of "question dictionaries". Each question dictionary
-# has:
-#   - "question": the prompt string shown to the user
-#   - "options":   a dict of choice-letter -> answer-text (A-D)
-#   - "answer":    the letter whose value is the correct answer
 quiz_data = {
     "math questions": [
         {
@@ -89,9 +72,9 @@ quiz_data = {
     ]
 }
 
-# ---------------------------------------------------------------------------
+
 # Game Initialization
-# ---------------------------------------------------------------------------
+
 # Greet the player.
 print("Welcome to the Quiz Game!")
 print("You will be asked several questions. Try to answer them correctly.")
@@ -100,77 +83,61 @@ print("You will be asked several questions. Try to answer them correctly.")
 score = 0
 total = 0
 
-# ---------------------------------------------------------------------------
-# Category Iteration (randomized)
-# ---------------------------------------------------------------------------
-# Convert the dict into a list of (key, value) pairs so it can be shuffled.
-categories = list(quiz_data.items())
-random.shuffle(categories)  # randomize the order categories appear in
-
-# Iterate one category at a time.
-for category, questions in categories:
-    print(f"\nCategory: {category}")  # announce which category is up
-    random.shuffle(questions)         # randomize question order within category
-
-    # Present up to 5 questions (each category only has 4, so all are used).
-    for i, question_data in enumerate(questions[:5], start=1):
-        print(f"\nQuestion {i}: {question_data['question']}")
-
-        # --- Shuffle the answer options (A/B/C/D) ---
-        # Grab the original (letter, text) pairs as a list.
-        option_items = list(question_data["options"].items())
-        random.shuffle(option_items)  # randomize their display order
-
-        # Reassign letters A, B, C, D based on the shuffled order, and
-        # remember which new letter holds the originally-correct answer.
-        shuffled_options = {}
-        correct_letter = None
-        for idx, (orig_key, value) in enumerate(option_items):
-            new_key = ["A", "B", "C", "D"][idx]      # assign a fresh letter
-            shuffled_options[new_key] = value
-            if orig_key == question_data["answer"]:  # was this the correct one?
-                correct_letter = new_key
-
-        # Display each option on its own line.
-        for option_key, option_value in shuffled_options.items():
-            print(f"{option_key}. {option_value}")
-
-        # --- Get the user's answer ---
-        # Keep prompting until the user enters a valid letter A-D.
-        # An inner try/except catches EOFError (closed pipe) and non-A-D
-        # input, printing an error and re-prompting instead of crashing.
-        while True:
-            try:
-                # .strip() removes leading/trailing whitespace so '  a  '
-                # is accepted; .upper() normalizes the case to 'A'.
-                user_answer = input("Enter your answer (A, B, C, D): ").strip().upper()
-            except EOFError:
-                # Input stream closed (e.g. empty pipe) — retry the prompt.
-                print("\nInput error. Please try again.")
-                continue
-
-            # Reject anything that isn't one of the four valid letters.
-            if user_answer not in ("A", "B", "C", "D"):
-                print("Invalid choice. Please enter A, B, C, or D.")
-                continue
-
-            break  # valid answer obtained — exit the validation loop
-
-        # --- Evaluate the answer ---
-        if user_answer == correct_letter:
-            print("Correct!")
-            score += 1
-        else:
-            print(f"Wrong! The correct answer is {correct_letter}.")
-
-        total += 1
-        percentage_score = (score / total) * 100 if total else 0
-        print(f"\nYour score: {score}/{total} ({percentage_score:.2f}%)")
-
-        # Performance feedback that updates as the quiz progresses.
-        if percentage_score >= 80:
-            print("Awesome! You have a great understanding of the material.")
-        elif percentage_score >= 50:
-            print("Good job! Keep practicing to improve.")
-        else:
-            print("Keep trying! You're almost there.")
+all_questions = []
+for category, questions in quiz_data.items():
+    for q in questions:
+        q["category"] = category  # tag each question with its category
+        all_questions.append(q)
+ 
+random.shuffle(all_questions)
+ 
+# Ask how many questions the player wants, with input validation.
+max_questions = len(all_questions)
+try:
+    num_questions = int(input(f"How many questions do you want? (1-{max_questions}): "))
+    if num_questions <= 0:
+        print("Please enter a positive number.")
+        num_questions = max_questions
+    elif num_questions > max_questions:
+        print(f"You can only answer up to {max_questions} questions. Setting to {max_questions}.")
+        num_questions = max_questions
+except ValueError:
+    print("That's not a valid number.")
+    num_questions = max_questions
+ 
+questions_to_ask = all_questions[:num_questions]
+ 
+current_category = None
+for question in questions_to_ask:
+    # Prints a category header whenever the category changes
+    if question["category"] != current_category:
+        current_category = question["category"]
+        print(f"\n--- {current_category.title()} ---")
+ 
+    print(f"\n{question['question']}")
+    for option, text in question["options"].items():
+        print(f"{option}. {text}")
+ 
+    # Validate input: keep asking until it's a real option
+    while True:
+        user_answer = input("Enter your answer (A, B, C, D): ").upper()
+        if user_answer in question["options"]:
+            break
+        print("Invalid choice — please enter A, B, C, or D.")
+ 
+    if user_answer == question["answer"]:
+        print("Correct!")
+        score += 1
+    else:
+        print(f"Wrong! The correct answer is {question['answer']}.")
+    total += 1
+ 
+# Final score — printed once, after every question has been asked
+percentage_score = (score / total) * 100 if total else 0
+print(f"\nYour score: {score}/{total} ({percentage_score:.2f}%)")
+if percentage_score >= 80:
+    print("Excellent")
+elif percentage_score >= 50:
+    print("Good")
+else:
+    print("Try again")
