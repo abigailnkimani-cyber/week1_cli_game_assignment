@@ -26,4 +26,6 @@ After the last question, your score and percentage will be displayed, along with
 80%+ → Excellent
 50–79% → Good
 Below 50% → Try again
+## License
+MIT
  
